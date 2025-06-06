@@ -19,7 +19,7 @@ multidict==6.4.4
 propcache==0.3.1
 pure_eval==0.2.3
 python-dotenv==1.1.0
-pywin32
+pywin32==306
 requests==2.32.3
 urllib3==2.4.0
 wcwidth==0.2.13
