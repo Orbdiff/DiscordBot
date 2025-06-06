@@ -102,6 +102,5 @@ async def on_ready():
     print(f'✅ Bot listo como {bot.user}')
 
 keep_alive()
-bot.run(DISCORD_TOKEN)
 
 
