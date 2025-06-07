@@ -46,7 +46,6 @@ async function obtenerArchivosPin() {
     });
 }
 
-// CORRECCIÓN: eliminarArchivo usa PUT en vez de DELETE para borrar en GitHub API
 async function eliminarArchivo(fileName, sha) {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${fileName}`;
   const headers = {
@@ -58,13 +57,7 @@ async function eliminarArchivo(fileName, sha) {
     sha: sha,
     branch: BRANCH
   };
-  try {
-    await axios.put(url, data, { headers });
-    console.log(`Archivo eliminado: ${fileName}`);
-  } catch (error) {
-    console.error(`❌ Error eliminando archivo ${fileName}:`, error?.response?.data || error.message);
-    throw error;
-  }
+  await axios.put(url, data, { headers });
 }
 
 // Nueva función para eliminar todos los archivos pin*.txt
@@ -73,6 +66,7 @@ async function eliminarTodosLosPins() {
     const archivos = await obtenerArchivosPin();
     for (const archivo of archivos) {
       await eliminarArchivo(archivo.name, archivo.sha);
+      console.log(`Archivo eliminado: ${archivo.name}`);
     }
     console.log('✅ Todos los archivos PIN han sido eliminados.');
   } catch (error) {
@@ -92,71 +86,56 @@ async function crearArchivo(pin, fileName) {
     content: content,
     branch: BRANCH
   };
-  try {
-    await axios.put(url, data, { headers });
-    console.log(`Archivo creado: ${fileName} con PIN: ${pin}`);
-  } catch (error) {
-    console.error(`❌ Error creando archivo ${fileName}:`, error?.response?.data || error.message);
-    throw error;
-  }
+  await axios.put(url, data, { headers });
 }
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  if (interaction.commandName === 'pincode') {
-    let deferSuccess = false;
-    try {
-      await interaction.deferReply();
-      deferSuccess = true;
-
-      const archivos = await obtenerArchivosPin();
-
-      let siguienteNumero = 0;
-      if (archivos.length > 0) {
-        const ultimoArchivo = archivos.reduce((a, b) => a.numero > b.numero ? a : b);
-        await eliminarArchivo(ultimoArchivo.name, ultimoArchivo.sha);
-        siguienteNumero = ultimoArchivo.numero + 1;
-      }
-
-      const nombreArchivo = `pin${siguienteNumero === 0 ? '' : siguienteNumero}.txt`;
-      const nuevoPIN = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
-
-      await crearArchivo(nuevoPIN, nombreArchivo);
-
-      await interaction.editReply({
-        content: `✅ Nuevo PIN generado: **${nuevoPIN}**\n📁 Archivo: \`${nombreArchivo}\``
-      });
-
-      setTimeout(async () => {
-  console.log('Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
-  try {
-    await eliminarTodosLosPins();
-    console.log('Eliminación programada completada.');
-
-    // Envía un mensaje nuevo al canal donde se usó el comando:
-    const channel = interaction.channel;
-    if (channel) {
-      await channel.send('🗑️ Todos los archivos PIN han sido eliminados automáticamente.');
-    }
-  } catch (e) {
-    console.error('Error en la eliminación programada:', e);
-  }
-}, 120000);
-
-    } catch (error) {
-      console.error('❌ Error:', error?.response?.data || error.message);
-
-      if (deferSuccess) {
-        try {
-          await interaction.editReply({ content: '⚠️ Ocurrió un error.' });
-        } catch (editError) {
-          console.error('❌ Error al editar la respuesta:', editError.message);
+    if (!interaction.isChatInputCommand()) return;
+  
+    if (interaction.commandName === 'pincode') {
+      let deferSuccess = false;
+      try {
+        await interaction.deferReply();
+        deferSuccess = true;
+  
+        const archivos = await obtenerArchivosPin();
+  
+        let siguienteNumero = 0;
+        if (archivos.length > 0) {
+          const ultimoArchivo = archivos.reduce((a, b) => a.numero > b.numero ? a : b);
+          await eliminarArchivo(ultimoArchivo.name, ultimoArchivo.sha);
+          siguienteNumero = ultimoArchivo.numero + 1;
+        }
+  
+        const nombreArchivo = `pin${siguienteNumero === 0 ? '' : siguienteNumero}.txt`;
+        const nuevoPIN = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
+  
+        await crearArchivo(nuevoPIN, nombreArchivo);
+  
+        await interaction.editReply({
+          content: `✅ Nuevo PIN generado: **${nuevoPIN}**\n📁 Archivo: \`${nombreArchivo}\``
+        });
+  
+        setTimeout(async () => {
+          console.log('Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
+          await eliminarTodosLosPins();
+        }, 120000);
+  
+      } catch (error) {
+        console.error('❌ Error:', error?.response?.data || error.message);
+        
+        // Solo intentar editar si deferReply fue exitoso
+        if (deferSuccess) {
+          try {
+            await interaction.editReply({ content: '⚠️ Ocurrió un error.' });
+          } catch (editError) {
+            console.error('❌ Error al editar la respuesta:', editError.message);
+          }
         }
       }
     }
-  }
-});
+  });
+  
 
 client.login(DISCORD_TOKEN);
 
