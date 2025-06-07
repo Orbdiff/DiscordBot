@@ -129,14 +129,20 @@ client.on('interactionCreate', async interaction => {
       });
 
       setTimeout(async () => {
-        console.log('Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
-        try {
-          await eliminarTodosLosPins();
-          console.log('Eliminación programada completada.');
-        } catch (e) {
-          console.error('Error en la eliminación programada:', e);
-        }
-      }, 120000);
+  console.log('Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
+  try {
+    await eliminarTodosLosPins();
+    console.log('Eliminación programada completada.');
+
+    // Envía un mensaje nuevo al canal donde se usó el comando:
+    const channel = interaction.channel;
+    if (channel) {
+      await channel.send('🗑️ Todos los archivos PIN han sido eliminados automáticamente.');
+    }
+  } catch (e) {
+    console.error('Error en la eliminación programada:', e);
+  }
+}, 120000);
 
     } catch (error) {
       console.error('❌ Error:', error?.response?.data || error.message);
