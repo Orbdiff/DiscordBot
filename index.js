@@ -93,11 +93,11 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
   
     if (interaction.commandName === 'pincode') {
-      let deferSuccess = false;
       try {
+        // Siempre defer lo primero
         await interaction.deferReply();
-        deferSuccess = true;
   
+        // Lógica de negocio
         const archivos = await obtenerArchivosPin();
   
         let siguienteNumero = 0;
@@ -112,30 +112,27 @@ client.on('interactionCreate', async interaction => {
   
         await crearArchivo(nuevoPIN, nombreArchivo);
   
+        // Mostrar resultado al usuario
         await interaction.editReply({
           content: `✅ Nuevo PIN generado: **${nuevoPIN}**\n📁 Archivo: \`${nombreArchivo}\``
         });
   
+        // Eliminar archivos luego de 2 minutos (solo en background)
         setTimeout(async () => {
-          console.log('Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
-          await eliminarTodosLosPins();
+          try {
+            console.log('⏳ Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
+            await eliminarTodosLosPins();
+          } catch (deleteError) {
+            console.error('❌ Error eliminando archivos luego de 2 minutos:', deleteError?.response?.data || deleteError.message);
+          }
         }, 120000);
   
       } catch (error) {
-        console.error('❌ Error:', error?.response?.data || error.message);
-        
-        // Solo intentar editar si deferReply fue exitoso
-        if (deferSuccess) {
-          try {
-            await interaction.editReply({ content: '⚠️ Ocurrió un error.' });
-          } catch (editError) {
-            console.error('❌ Error al editar la respuesta:', editError.message);
-          }
-        }
+        // No trates de responder al usuario
+        console.error('❌ Error general en comando /pincode:', error?.response?.data || error.message);
       }
     }
   });
-  
 
 client.login(DISCORD_TOKEN);
 
