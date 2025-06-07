@@ -138,3 +138,16 @@ client.on('interactionCreate', async interaction => {
   
 
 client.login(DISCORD_TOKEN);
+
+// express port
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Bot Discord corriendo');
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
+});
