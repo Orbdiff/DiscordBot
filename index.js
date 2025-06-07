@@ -57,7 +57,7 @@ async function eliminarArchivo(fileName, sha) {
     sha: sha,
     branch: BRANCH
   };
-  await axios.put(url, data, { headers });
+  await axios.delete(url, { headers, data });
 }
 
 // Nueva función para eliminar todos los archivos pin*.txt
