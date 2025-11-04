@@ -21,7 +21,7 @@ const command = new SlashCommandBuilder()
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 client.once('ready', async () => {
-  const APPLICATION_ID = '1391498149012574318'; // tu Application ID real
+  const APPLICATION_ID = client.user.id; // lo obtiene automáticamente
 
   try {
     console.log('⏳ Limpiando comandos antiguos en el guild...');
@@ -159,4 +159,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
 });
+
 
