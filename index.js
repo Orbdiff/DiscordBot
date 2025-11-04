@@ -21,16 +21,27 @@ const command = new SlashCommandBuilder()
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 client.once('ready', async () => {
+  const APPLICATION_ID = '1391498149012574318'; // tu Application ID real
+
   try {
+    console.log('⏳ Limpiando comandos antiguos en el guild...');
     await rest.put(
-      Routes.applicationGuildCommands(client.user.id, GUILD_ID),
+      Routes.applicationGuildCommands(APPLICATION_ID, GUILD_ID),
+      { body: [] } // borra todos los comandos existentes en el guild
+    );
+    console.log('✅ Comandos antiguos borrados.');
+
+    console.log('⏳ Registrando comando /pincode...');
+    await rest.put(
+      Routes.applicationGuildCommands(APPLICATION_ID, GUILD_ID),
       { body: [command.toJSON()] }
     );
-    console.log(`✅ Bot listo como ${client.user.tag}`);
+    console.log(`✅ Bot listo como ${client.user.tag} y comando /pincode registrado correctamente.`);
   } catch (error) {
     console.error('❌ Error registrando comando:', error);
   }
 });
+
 
 async function obtenerArchivosPin() {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
@@ -148,3 +159,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
 });
+
