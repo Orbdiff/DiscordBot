@@ -12,6 +12,9 @@ const {
   GUILD_ID
 } = process.env;
 
+// Convertir la cadena de GUILD_ID en un array de IDs
+const GUILD_IDS = GUILD_ID.split(','); // Esto separa los GUILD_IDs por coma
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const command = new SlashCommandBuilder()
@@ -24,19 +27,29 @@ client.once('ready', async () => {
   const APPLICATION_ID = client.user.id; // lo obtiene automáticamente
 
   try {
-    console.log('⏳ Limpiando comandos antiguos en el guild...');
-    await rest.put(
-      Routes.applicationGuildCommands(APPLICATION_ID, GUILD_ID),
-      { body: [] } // borra todos los comandos existentes en el guild
-    );
-    console.log('✅ Comandos antiguos borrados.');
+    console.log('⏳ Limpiando comandos antiguos en los servidores...');
 
-    console.log('⏳ Registrando comando /pincode...');
-    await rest.put(
-      Routes.applicationGuildCommands(APPLICATION_ID, GUILD_ID),
-      { body: [command.toJSON()] }
-    );
-    console.log(`✅ Bot listo como ${client.user.tag} y comando /pincode registrado correctamente.`);
+    // Limpiar comandos antiguos en todos los servidores especificados
+    for (const guildId of GUILD_IDS) {
+      await rest.put(
+        Routes.applicationGuildCommands(APPLICATION_ID, guildId),
+        { body: [] } // Borra todos los comandos existentes en el guild
+      );
+      console.log(`✅ Comandos antiguos borrados en el servidor ${guildId}.`);
+    }
+
+    console.log('⏳ Registrando comando /pincode en los servidores...');
+
+    // Registrar el comando en todos los servidores
+    for (const guildId of GUILD_IDS) {
+      await rest.put(
+        Routes.applicationGuildCommands(APPLICATION_ID, guildId),
+        { body: [command.toJSON()] }
+      );
+      console.log(`✅ Comando /pincode registrado en el servidor ${guildId}.`);
+    }
+
+    console.log(`✅ Bot listo como ${client.user.tag} y comando /pincode registrado correctamente en los servidores.`);
   } catch (error) {
     console.error('❌ Error registrando comando:', error);
   }
@@ -159,5 +172,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
 });
+
 
 
