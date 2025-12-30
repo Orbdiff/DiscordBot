@@ -21,7 +21,7 @@ const command = new SlashCommandBuilder()
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 client.once('ready', async () => {
-  const APPLICATION_ID = client.user.id; // lo obtiene automáticamente
+  const APPLICATION_ID = client.user.id;
 
   try {
     console.log('⏳ Limpiando comandos antiguos en el guild...');
@@ -41,7 +41,6 @@ client.once('ready', async () => {
     console.error('❌ Error registrando comando:', error);
   }
 });
-
 
 async function obtenerArchivosPin() {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
@@ -71,7 +70,6 @@ async function eliminarArchivo(fileName, sha) {
   await axios.delete(url, { headers, data });
 }
 
-// Nueva función para eliminar todos los archivos pin*.txt
 async function eliminarTodosLosPins() {
   try {
     const archivos = await obtenerArchivosPin();
@@ -105,10 +103,8 @@ client.on('interactionCreate', async interaction => {
   
     if (interaction.commandName === 'pincode') {
       try {
-        // Siempre defer lo primero
         await interaction.deferReply();
   
-        // Lógica de negocio
         const archivos = await obtenerArchivosPin();
   
         let siguienteNumero = 0;
@@ -123,12 +119,10 @@ client.on('interactionCreate', async interaction => {
   
         await crearArchivo(nuevoPIN, nombreArchivo);
   
-        // Mostrar resultado al usuario
         await interaction.editReply({
-          content: `✅ Nuevo PIN generado: **${nuevoPIN}**\n📁 Archivo: \`${nombreArchivo}\``
+          content: `✨ New PIN: **${nuevoPIN}**`
         });
   
-        // Eliminar archivos luego de 2 minutos (solo en background)
         setTimeout(async () => {
           try {
             console.log('⏳ Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
@@ -139,7 +133,6 @@ client.on('interactionCreate', async interaction => {
         }, 120000);
   
       } catch (error) {
-        // No trates de responder al usuario
         console.error('❌ Error general en comando /pincode:', error?.response?.data || error.message);
       }
     }
@@ -147,7 +140,6 @@ client.on('interactionCreate', async interaction => {
 
 client.login(DISCORD_TOKEN);
 
-// express port
 const express = require('express');
 const app = express();
 
@@ -159,4 +151,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
 });
-
