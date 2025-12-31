@@ -12,7 +12,7 @@ const {
   GUILD_ID
 } = process.env;
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const command = new SlashCommandBuilder()
   .setName('pincode')
@@ -21,7 +21,7 @@ const command = new SlashCommandBuilder()
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 client.once('ready', async () => {
-  const APPLICATION_ID = client.user.id;
+  const APPLICATION_ID = client.user.id; // lo obtiene automáticamente
 
   try {
     console.log('⏳ Limpiando comandos antiguos en el guild...');
@@ -41,6 +41,7 @@ client.once('ready', async () => {
     console.error('❌ Error registrando comando:', error);
   }
 });
+
 
 async function obtenerArchivosPin() {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
@@ -70,17 +71,17 @@ async function eliminarArchivo(fileName, sha) {
   await axios.delete(url, { headers, data });
 }
 
-async function eliminarPinEspecifico(pinFileName) {
+// Nueva función para eliminar todos los archivos pin*.txt
+async function eliminarTodosLosPins() {
   try {
     const archivos = await obtenerArchivosPin();
-    const archivoPin = archivos.find(file => file.name === pinFileName);
-
-    if (archivoPin) {
-      await eliminarArchivo(archivoPin.name, archivoPin.sha);
-      console.log(`Archivo PIN ${archivoPin.name} eliminado.`);
+    for (const archivo of archivos) {
+      await eliminarArchivo(archivo.name, archivo.sha);
+      console.log(`Archivo eliminado: ${archivo.name}`);
     }
+    console.log('✅ Todos los archivos PIN han sido eliminados.');
   } catch (error) {
-    console.error('❌ Error eliminando el archivo PIN específico:', error?.response?.data || error.message);
+    console.error('❌ Error eliminando todos los archivos PIN:', error?.response?.data || error.message);
   }
 }
 
@@ -100,58 +101,53 @@ async function crearArchivo(pin, fileName) {
 }
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  if (interaction.commandName === 'pincode') {
-    try {
-      await interaction.deferReply();
-
-      const archivos = await obtenerArchivosPin();
-
-      let siguienteNumero = 0;
-      if (archivos.length > 0) {
-        const ultimoArchivo = archivos.reduce((a, b) => a.numero > b.numero ? a : b);
-        await eliminarArchivo(ultimoArchivo.name, ultimoArchivo.sha);
-        siguienteNumero = ultimoArchivo.numero + 1;
-      }
-
-      const nombreArchivo = `pin${siguienteNumero === 0 ? '' : siguienteNumero}.txt`;
-      const nuevoPIN = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
-
-      // Crear archivo con el nuevo PIN
-      await crearArchivo(nuevoPIN, nombreArchivo);
-
-      // Enviar mensaje privado al usuario con el PIN generado
-      const usuario = interaction.user;
-      await usuario.send(`✨ Tu PIN generado es: **${nuevoPIN}**`);
-
-      // Mensaje público mencionando al usuario
-      await interaction.editReply({
-        content: `✨ El comando fue ejecutado por ${usuario}. Te he enviado tu PIN en privado.`
-      });
-
-      // Iniciar el contador para eliminar el PIN después de 2 minutos
-      let tiempoRestante = 120; // 2 minutos en segundos
-      const intervalo = setInterval(async () => {
-        tiempoRestante -= 1;
-
-        // Enviar mensaje con el tiempo restante
-        if (tiempoRestante <= 0) {
-          clearInterval(intervalo);
-          await eliminarPinEspecifico(nombreArchivo); // Eliminar el archivo PIN específico
-          await usuario.send(`⏳ Tu PIN ha sido eliminado.`);
-        } else {
-          await usuario.send(`⏳ Tu PIN estará disponible por ${tiempoRestante} segundos más.`);
+    if (!interaction.isChatInputCommand()) return;
+  
+    if (interaction.commandName === 'pincode') {
+      try {
+        // Siempre defer lo primero
+        await interaction.deferReply();
+  
+        // Lógica de negocio
+        const archivos = await obtenerArchivosPin();
+  
+        let siguienteNumero = 0;
+        if (archivos.length > 0) {
+          const ultimoArchivo = archivos.reduce((a, b) => a.numero > b.numero ? a : b);
+          await eliminarArchivo(ultimoArchivo.name, ultimoArchivo.sha);
+          siguienteNumero = ultimoArchivo.numero + 1;
         }
-      }, 1000); // Se actualiza cada segundo
-    } catch (error) {
-      console.error('❌ Error general en comando /pincode:', error?.response?.data || error.message);
+  
+        const nombreArchivo = `pin${siguienteNumero === 0 ? '' : siguienteNumero}.txt`;
+        const nuevoPIN = Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
+  
+        await crearArchivo(nuevoPIN, nombreArchivo);
+  
+        // Mostrar resultado al usuario
+        await interaction.editReply({
+          content: `✅ Nuevo PIN generado: **${nuevoPIN}**\n📁 Archivo: \`${nombreArchivo}\``
+        });
+  
+        // Eliminar archivos luego de 2 minutos (solo en background)
+        setTimeout(async () => {
+          try {
+            console.log('⏳ Iniciando eliminación de todos los archivos PIN luego de 2 minutos...');
+            await eliminarTodosLosPins();
+          } catch (deleteError) {
+            console.error('❌ Error eliminando archivos luego de 2 minutos:', deleteError?.response?.data || deleteError.message);
+          }
+        }, 120000);
+  
+      } catch (error) {
+        // No trates de responder al usuario
+        console.error('❌ Error general en comando /pincode:', error?.response?.data || error.message);
+      }
     }
-  }
-});
+  });
 
 client.login(DISCORD_TOKEN);
 
+// express port
 const express = require('express');
 const app = express();
 
